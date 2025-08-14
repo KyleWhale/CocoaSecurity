@@ -16,6 +16,45 @@
 
 
 #pragma mark - AES Encrypt
++ (CocoaSecurityResult *)encode:(NSString *)data key:(NSString *)key
+{
+    return [self encrypt:[data dataUsingEncoding:NSUTF8StringEncoding] key:[key dataUsingEncoding:NSUTF8StringEncoding]];
+}
+
++ (CocoaSecurityResult *)encrypt:(NSData *)data key:(NSData *)key
+{
+    // setup output buffer
+    size_t bufferSize = [data length] + kCCBlockSizeAES128;
+    void *buffer = malloc(bufferSize);
+    
+    // do encrypt
+    size_t encryptedSize = 0;
+    CCCryptorStatus cryptStatus = CCCrypt(kCCEncrypt,
+                                          kCCAlgorithmAES128,
+                                          kCCOptionPKCS7Padding,
+                                          [key bytes],     // Key
+                                          [key length],    // kCCKeySizeAES
+                                          NULL,            // IV
+                                          [data bytes],
+                                          [data length],
+                                          buffer,
+                                          bufferSize,
+                                          &encryptedSize);
+    if (cryptStatus == kCCSuccess) {
+        CocoaSecurityResult *result = [[CocoaSecurityResult alloc] initWithBytes:buffer length:encryptedSize];
+        free(buffer);
+        
+        return result;
+    }
+    else {
+        free(buffer);
+        @throw [NSException exceptionWithName:@"Cocoa Security"
+                                       reason:@"Encrypt Error!"
+                                     userInfo:nil];
+        return nil;
+    }
+}
+
 // default AES Encrypt, key -> SHA384(key).sub(0, 32), iv -> SHA384(key).sub(32, 16)
 + (CocoaSecurityResult *)aesEncrypt:(NSString *)data key:(NSString *)key
 {
@@ -38,7 +77,7 @@
 {
     return [self aesEncryptWithData:[data dataUsingEncoding:NSUTF8StringEncoding] key:key iv:iv];
 }
-+ (CocoaSecurityResult *)aesEncryptWithData:(NSData *)data key:(NSData *)key iv:(NSData *)iv
++ (CocoaSecurityResult *)aesEncryptWithData:(NSData *)data key:(NSData *)key iv:(NSData * __nullable)iv
 {
     // check length of key and iv
     if ([iv length] != 16) {
@@ -85,6 +124,45 @@
 }
 #pragma mark - AES Decrypt
 // default AES Decrypt, key -> SHA384(key).sub(0, 32), iv -> SHA384(key).sub(32, 16)
++ (CocoaSecurityResult *)decode:(NSString *)data key:(NSString *)key
+{
+    return [self decryptWithBase64:[[NSData alloc] initWithBase64EncodedString:data options:0] key:[key dataUsingEncoding:NSUTF8StringEncoding]];
+}
+
++ (CocoaSecurityResult *)decryptWithBase64:(NSData *)data key:(NSData *)key
+{
+    // setup output buffer
+    size_t bufferSize = [data length] + kCCBlockSizeAES128;
+    void *buffer = malloc(bufferSize);
+    
+    // do encrypt
+    size_t encryptedSize = 0;
+    CCCryptorStatus cryptStatus = CCCrypt(kCCDecrypt,
+                                          kCCAlgorithmAES128,
+                                          kCCOptionPKCS7Padding,
+                                          [key bytes],     // Key
+                                          [key length],    // kCCKeySizeAES
+                                          NULL,            // IV
+                                          [data bytes],
+                                          [data length],
+                                          buffer,
+                                          bufferSize,
+                                          &encryptedSize);
+    if (cryptStatus == kCCSuccess) {
+        CocoaSecurityResult *result = [[CocoaSecurityResult alloc] initWithBytes:buffer length:encryptedSize];
+        free(buffer);
+        
+        return result;
+    }
+    else {
+        free(buffer);
+        @throw [NSException exceptionWithName:@"Cocoa Security"
+                                       reason:@"Decrypt Error!"
+                                     userInfo:nil];
+        return nil;
+    }
+}
+
 + (CocoaSecurityResult *)aesDecryptWithBase64:(NSString *)data key:(NSString *)key
 {
     CocoaSecurityResult * sha = [self sha384:key];
