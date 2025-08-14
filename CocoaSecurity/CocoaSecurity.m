@@ -27,14 +27,16 @@
     size_t bufferSize = [data length] + kCCBlockSizeAES128;
     void *buffer = malloc(bufferSize);
     
+    NSMutableData *mutableData = [NSMutableData dataWithLength:kCCKeySizeAES128];
+    [mutableData replaceBytesInRange:NSMakeRange(0, key.length) withBytes:key.bytes];
     // do encrypt
     size_t encryptedSize = 0;
     CCCryptorStatus cryptStatus = CCCrypt(kCCEncrypt,
-                                          kCCAlgorithmAES128,
-                                          kCCOptionPKCS7Padding,
-                                          [key bytes],     // Key
-                                          [key length],    // kCCKeySizeAES
-                                          NULL,            // IV
+                                          kCCAlgorithmAES,
+                                          kCCOptionPKCS7Padding | kCCOptionECBMode,
+                                          [mutableData bytes],   // Key
+                                          [key length],          // kCCKeySizeAES
+                                          NULL,                  // IV
                                           [data bytes],
                                           [data length],
                                           buffer,
@@ -135,14 +137,17 @@
     size_t bufferSize = [data length] + kCCBlockSizeAES128;
     void *buffer = malloc(bufferSize);
     
+    NSMutableData *mutableData = [NSMutableData dataWithLength:kCCKeySizeAES128];
+    [mutableData replaceBytesInRange:NSMakeRange(0, key.length) withBytes:key.bytes];
+    
     // do encrypt
     size_t encryptedSize = 0;
     CCCryptorStatus cryptStatus = CCCrypt(kCCDecrypt,
-                                          kCCAlgorithmAES128,
-                                          kCCOptionPKCS7Padding,
-                                          [key bytes],     // Key
-                                          [key length],    // kCCKeySizeAES
-                                          NULL,            // IV
+                                          kCCAlgorithmAES,
+                                          kCCOptionPKCS7Padding | kCCOptionECBMode,
+                                          [mutableData bytes],  // Key
+                                          kCCKeySizeAES128,     // kCCKeySizeAES
+                                          NULL,                 // IV
                                           [data bytes],
                                           [data length],
                                           buffer,
@@ -551,7 +556,7 @@
 {
     if (data.length == 0) { return nil; }
     
-    static const unsigned char HexDecodeChars[] = 
+    static const unsigned char HexDecodeChars[] =
     {
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
